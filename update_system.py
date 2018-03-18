@@ -2,57 +2,100 @@
 # -*- coding: utf-8 -*-
 # import subprocess as sub
 from subprocess import Popen, PIPE, STDOUT
+from print_colors import PrintColors
+from settings import *
+
+p = PrintColors()
 
 
-def add_repositories():
-    repo_list = [
-        'ppa:webupd8team/sublime-text-3',
-        'ppa:atareao/telegram',
-    ]
-
-    print('----- Start Add Repositories -----\n')
-    for name_repo in repo_list:
-        cmd = 'add-apt-repository -y %s' % name_repo
-        finish_msg = '----- Add Repo %s - DONE -----\n' % name_repo
-        error_message = '----- Add Repo %s ERROR -----\n' % name_repo
-        pipe_call(cmd, finish_msg=finish_msg, error_message=error_message, stderr=STDOUT)
-    print('----- Finish Add Repositories -----\n')
-
-
-def update_system():
-    update = 'apt-get update'
-    upgrade = 'apt-get -y upgrade'
-    dist_upgrade = 'apt-get -y dist-upgrade'
-
-    print('----- Start Update System -----\n')
-    for i, cmd in enumerate([update, upgrade, dist_upgrade], start=1):
-        finish_msg = '----- Update Stage %s - DONE -----\n' % i
-        error_message = '----- Update Stage %s ERROR -----\n' % i
-	if i == 2:
-            pipe_call(cmd, finish_msg=finish_msg, error_message=error_message, stdout=PIPE)
-        else:
-	    pipe_call(cmd, finish_msg=finish_msg, error_message=error_message)
-
-    print('----- Finish Update System -----\n')
+def add_repository(name_repo):
+    """ Добавление репозитория для установки пакета """
+    prefix = 'Add Repo'
+    cmd = 'add-apt-repository -y %s' % name_repo
+    info_msg = '----- %s %s - GO -----' % (prefix, name_repo)
+    ok_msg = '----- %s %s - DONE -----' % (prefix, name_repo)
+    err_msg = '----- %s %s - ERROR -----' % (prefix, name_repo)
+    pipe_call(cmd, info_msg=info_msg, ok_msg=ok_msg, err_msg=err_msg, warning_code_list=[0])
 
 
 def install_package(name_package):
-    cmd = 'apt-get -y install %s' % name_package
-    finish_msg = '----- Install Package "%s" - DONE -----\n' % name_package
-    error_message = '----- Install Package %s ERROR -----\n' % name_package
-    pipe_call(cmd, finish_msg=finish_msg, error_message=error_message)
+    """ Установка пакета """
+    if name_package:
+        prefix = 'Install Package'
+	cmd = 'apt-get -y install %s' % name_package
+	info_msg = '----- %s %s - GO -----' % (prefix, name_package)
+	ok_msg = '----- %s %s - DONE -----' % (prefix, name_package)
+	err_msg = '----- %s %s - ERROR -----' % (prefix, name_package)
+	pipe_call(cmd, info_msg=info_msg, ok_msg=ok_msg, err_msg=err_msg)
+    else:
+	print(p.color_print('fail', 'Empty Name Packege'))
+	exit(1)
 
-
-def pipe_call(cmd, start_msg=None, finish_msg=None, error_message=None, stderr=PIPE, stdout=None):
-    # print(start_msg or '----- START -----')
+def pipe_call(cmd, info_msg=None, ok_msg=None, err_msg=None, stderr=PIPE, warning_code_list=None):
+    print(p.color_print('header', info_msg or '----- START -----'))
     print(cmd)
-    p = Popen(cmd.split(), stderr=stderr)
-    out, err = p.communicate()
+    pipe = Popen(cmd.split(), stderr=stderr)
+    out, err = pipe.communicate()
+    print(pipe.returncode)
+    # print('out = ', out)
+    # print('err = ', err)
     if err:
-        print(error_message or '----- ERROR -----\n')
-        print(err)
-        exit(1)
-    print(finish_msg or '----- DONE -----\n')
+    	if warning_code_list and pipe.returncode in warning_code_list:
+   	    print(p.color_print('warning', err or '----- WARNING -----'))
+    	else:
+	    print(p.color_print('fail', err_msg or '----- ERROR -----'))
+	    print(err)
+	    exit(1)
+    print(p.color_print('okgreen', ok_msg or '----- DONE -----'))
+
+
+def update_system():
+    """ Стандартное обновление системы """
+    print(p.color_print('okblue', '----- Start Update System -----\n'))
+
+    prefix = 'CMD'
+    for item in update_system_list:
+    	cmd = item.get('cmd')
+    	if cmd:
+	    info_msg = '----- %s %s - GO -----' % (prefix, cmd)
+    	    ok_msg = '----- %s %s - DONE -----' % (prefix, cmd)
+    	    err_msg = '----- %s %s - ERROR -----' % (prefix, cmd)
+    	    pipe_call(cmd, info_msg=info_msg, ok_msg=ok_msg, err_msg=err_msg)
+
+    print(p.color_print('okblue', '\n----- Finish Update System -----\n'))
+
+
+def install_system_libs():
+    """ Установка дополнительных системных библиотек """
+    print(p.color_print('okblue', '----- Start Install System Libs -----\n'))
+    prefix = 'Install'
+    for item in system_libs_list:
+	name_package = item.get('name')
+    	install_package(name_package)
+    print(p.color_print('okblue', '\n----- Finish Install System Libs -----\n'))
+
+
+def install_my_packeges():
+    print(p.color_print('okblue', '----- Start Install My Packege -----\n'))
+    
+    for p_info in install_packege_list:
+    	repo = p_info.get('repo')
+    	befor = p_info.get('befor')
+    	package = p_info.get('name')
+    	after = p_info.get('after')
+    	if repo:
+    	    add_repository(repo)
+        if befor:
+            cmd = befor.get('cmd')
+            warning_code = befor.get('warning_code')
+            pipe_call(cmd, warning_code_list=[warning_code])
+        install_package(package)
+        if after:
+            cmd = after.get('cmd')
+            warning_code = after.get('warning_code')
+            pipe_call(cmd, warning_code_list=[warning_code])
+
+    print(p.color_print('okblue', '\n----- Finish Install My Packege -----\n'))
 
 
 # def remove_packages(name_packages_list):
@@ -68,33 +111,8 @@ def pipe_call(cmd, start_msg=None, finish_msg=None, error_message=None, stderr=P
 #         print('----- Remove Package %s - DONE -----\n' % package)
 #     print('----- Finish Remove Packages -----\n')
 
-
-def install_my_programs():
-    name_packages_list = [
-        'guake',
-        'git',
-	'mc',
-        'sublime-text-installer',
-        'telegram'
-    ]
-    other_cmd_to_install = [
-        #'ln -s /usr/share/applications/guake.desktop /etc/xdg/autostart/',
-        'pwd',
-    ]
-
-    print('----- Start Install Packages -----\n')
-    for package in name_packages_list:
-        install_package(package)
-    print('----- Finish Base Install Packages -----\n')
-
-    print('----- Start Other Command -----\n')
-    for cmd in other_cmd_to_install:
-        pipe_call(cmd)
-    print('----- Finish Other Command  -----\n')
-
-
 if __name__ == '__main__':
-    # add_repositories()
-    # update_system()
-    install_my_programs()
+    update_system()
+    install_system_libs()
+    install_my_packeges()
 
