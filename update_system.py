@@ -22,14 +22,14 @@ def install_package(name_package):
     """ Установка пакета """
     if name_package:
         prefix = 'Install Package'
-	cmd = 'apt-get -y install %s' % name_package
-	info_msg = '----- %s %s - GO -----' % (prefix, name_package)
-	ok_msg = '----- %s %s - DONE -----' % (prefix, name_package)
-	err_msg = '----- %s %s - ERROR -----' % (prefix, name_package)
-	pipe_call(cmd, info_msg=info_msg, ok_msg=ok_msg, err_msg=err_msg)
+	    cmd = 'apt-get -y install %s' % name_package
+	    info_msg = '----- %s %s - GO -----' % (prefix, name_package)
+	    ok_msg = '----- %s %s - DONE -----' % (prefix, name_package)
+	    err_msg = '----- %s %s - ERROR -----' % (prefix, name_package)
+	    pipe_call(cmd, info_msg=info_msg, ok_msg=ok_msg, err_msg=err_msg)
     else:
-	print(p.color_print('fail', 'Empty Name Packege'))
-	exit(1)
+	    print(p.color_print('fail', 'Empty Name Packege'))
+	    exit(1)
 
 def pipe_call(cmd, info_msg=None, ok_msg=None, err_msg=None, stderr=PIPE, warning_code_list=None):
     print(p.color_print('header', info_msg or '----- START -----'))
@@ -41,11 +41,11 @@ def pipe_call(cmd, info_msg=None, ok_msg=None, err_msg=None, stderr=PIPE, warnin
     # print('err = ', err)
     if err:
     	if warning_code_list and pipe.returncode in warning_code_list:
-   	    print(p.color_print('warning', err or '----- WARNING -----'))
+   	        print(p.color_print('warning', err or '----- WARNING -----'))
     	else:
-	    print(p.color_print('fail', err_msg or '----- ERROR -----'))
-	    print(err)
-	    exit(1)
+	        print(p.color_print('fail', err_msg or '----- ERROR -----'))
+	        print(err)
+	        exit(1)
     print(p.color_print('okgreen', ok_msg or '----- DONE -----'))
 
 
@@ -57,21 +57,22 @@ def update_system():
     for item in update_system_list:
     	cmd = item.get('cmd')
     	if cmd:
-	    info_msg = '----- %s %s - GO -----' % (prefix, cmd)
+	        info_msg = '----- %s %s - GO -----' % (prefix, cmd)
     	    ok_msg = '----- %s %s - DONE -----' % (prefix, cmd)
-    	    err_msg = '----- %s %s - ERROR -----' % (prefix, cmd)
-    	    pipe_call(cmd, info_msg=info_msg, ok_msg=ok_msg, err_msg=err_msg)
-
+            err_msg = '----- %s %s - ERROR -----' % (prefix, cmd)
+   	        pipe_call(cmd, info_msg=info_msg, ok_msg=ok_msg, err_msg=err_msg)
     print(p.color_print('okblue', '\n----- Finish Update System -----\n'))
 
 
 def install_system_libs():
     """ Установка дополнительных системных библиотек """
     print(p.color_print('okblue', '----- Start Install System Libs -----\n'))
+
     prefix = 'Install'
     for item in system_libs_list:
-	name_package = item.get('name')
-    	install_package(name_package)
+	    name_package = item.get('name')
+        install_package(name_package)
+        
     print(p.color_print('okblue', '\n----- Finish Install System Libs -----\n'))
 
 
