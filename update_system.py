@@ -12,80 +12,78 @@ def add_repository(name_repo):
     """ Добавление репозитория для установки пакета """
     prefix = 'Add Repo'
     cmd = 'add-apt-repository -y %s' % name_repo
-    info_msg = '----- %s %s - GO -----' % (prefix, name_repo)
-    ok_msg = '----- %s %s - DONE -----' % (prefix, name_repo)
-    err_msg = '----- %s %s - ERROR -----' % (prefix, name_repo)
-    pipe_call(cmd, info_msg=info_msg, ok_msg=ok_msg, err_msg=err_msg, warning_code_list=[0])
+    msg = '%s %s' % (prefix, name_repo)
+    pipe_call(cmd, msg=msg, warning_code_list=[0])
 
 
 def install_package(name_package):
     """ Установка пакета """
     if name_package:
         prefix = 'Install Package'
-	    cmd = 'apt-get -y install %s' % name_package
-	    info_msg = '----- %s %s - GO -----' % (prefix, name_package)
-	    ok_msg = '----- %s %s - DONE -----' % (prefix, name_package)
-	    err_msg = '----- %s %s - ERROR -----' % (prefix, name_package)
-	    pipe_call(cmd, info_msg=info_msg, ok_msg=ok_msg, err_msg=err_msg)
+        cmd = 'apt-get -y install %s' % name_package
+        msg = '%s %s' % (prefix, name_package)
+        pipe_call(cmd, msg=msg)
     else:
-	    print(p.color_print('fail', 'Empty Name Packege'))
-	    exit(1)
+        print(p.print_error('Empty Name Packege'))
+        exit(1)
 
-def pipe_call(cmd, info_msg=None, ok_msg=None, err_msg=None, stderr=PIPE, warning_code_list=None):
-    print(p.color_print('header', info_msg or '----- START -----'))
+
+def pipe_call(cmd, msg=None, stderr=PIPE, warning_code_list=None):
+    print(p.print_info(msg))
     print(cmd)
     pipe = Popen(cmd.split(), stderr=stderr)
     out, err = pipe.communicate()
     print(pipe.returncode)
-    # print('out = ', out)
-    # print('err = ', err)
     if err:
-    	if warning_code_list and pipe.returncode in warning_code_list:
-   	        print(p.color_print('warning', err or '----- WARNING -----'))
-    	else:
-	        print(p.color_print('fail', err_msg or '----- ERROR -----'))
-	        print(err)
-	        exit(1)
-    print(p.color_print('okgreen', ok_msg or '----- DONE -----'))
+        if warning_code_list and pipe.returncode in warning_code_list:
+            print(p.print_warning(err))
+        else:
+            print(p.print_error(msg))
+            print(err)
+            exit(1)
+    print(p.print_ok_green(msg))
 
 
 def update_system():
     """ Стандартное обновление системы """
-    print(p.color_print('okblue', '----- Start Update System -----\n'))
+    print(p.color_print_format('okblue', ' Start Update System '))
 
     prefix = 'CMD'
     for item in update_system_list:
-    	cmd = item.get('cmd')
-    	if cmd:
-	        info_msg = '----- %s %s - GO -----' % (prefix, cmd)
-    	    ok_msg = '----- %s %s - DONE -----' % (prefix, cmd)
-            err_msg = '----- %s %s - ERROR -----' % (prefix, cmd)
-   	        pipe_call(cmd, info_msg=info_msg, ok_msg=ok_msg, err_msg=err_msg)
-    print(p.color_print('okblue', '\n----- Finish Update System -----\n'))
+        try:
+            cmd = item['cmd']
+            msg = '%s %s' % (prefix, cmd)
+            pipe_call(cmd, msg=msg)
+        except KeyError as err:
+            err_msg = '%s \n' % err
+            print(p.print_error(err_msg))
+
+    print(p.color_print_format('okblue', ' Finish Update System '))
+    print('\n')
 
 
 def install_system_libs():
     """ Установка дополнительных системных библиотек """
-    print(p.color_print('okblue', '----- Start Install System Libs -----\n'))
+    print(p.color_print_format('okblue', ' Start Install System Libs '))
 
-    prefix = 'Install'
     for item in system_libs_list:
-	    name_package = item.get('name')
+        name_package = item.get('name')
         install_package(name_package)
-        
-    print(p.color_print('okblue', '\n----- Finish Install System Libs -----\n'))
+
+    print(p.color_print_format('okblue', ' Finish Install System Libs '))
+    print('\n')
 
 
 def install_my_packeges():
-    print(p.color_print('okblue', '----- Start Install My Packege -----\n'))
+    print(p.color_print_format('okblue', ' Start Install My Packege '))
     
     for p_info in install_packege_list:
-    	repo = p_info.get('repo')
-    	befor = p_info.get('befor')
-    	package = p_info.get('name')
-    	after = p_info.get('after')
-    	if repo:
-    	    add_repository(repo)
+        repo = p_info.get('repo')
+        befor = p_info.get('befor')
+        package = p_info.get('name')
+        after = p_info.get('after')
+        if repo:
+            add_repository(repo)
         if befor:
             cmd = befor.get('cmd')
             warning_code = befor.get('warning_code')
@@ -96,7 +94,8 @@ def install_my_packeges():
             warning_code = after.get('warning_code')
             pipe_call(cmd, warning_code_list=[warning_code])
 
-    print(p.color_print('okblue', '\n----- Finish Install My Packege -----\n'))
+    print(p.color_print_format('okblue', ' Finish Install My Packege '))
+    print('\n')
 
 
 # def remove_packages(name_packages_list):
