@@ -89,7 +89,7 @@ class PrintColors(with_metaclass(PrintColorMetaclass)):
         return self.color_print_format('header', msg)
 
     def print_warning(self, war_msg=None):
-        msg = ' %s - WARNING ' % war_msg if war_msg else self.DefaultMessages.warning
+        msg = u' %s - WARNING ' % war_msg.decode('utf-8') if war_msg else self.DefaultMessages.warning
         return self.color_print_format('warning', msg)
 
     def print_error(self, err_msg=None):
