@@ -49,13 +49,13 @@ class UUP(object):
         if self.param.get('full'):
             self.update_system()
             self.install_system_libs()
-            self.install_my_packages()
+            self.install_my_packages(update_programs_list)
         elif self.param.get('system'):
             self.update_system()
         elif self.param.get('packages'):
             self.install_system_libs()
         elif self.param.get('programs'):
-            self.install_my_packages()
+            self.install_my_packages(update_programs_list)
 
     def update_system(self):
         """ Стандартное обновление системы """
@@ -85,25 +85,42 @@ class UUP(object):
         print(p.color_print_format('okblue', ' Finish Install System Libs '))
         print('\n')
 
-    def install_my_packages(self):
-        print(p.color_print_format('okblue', ' Start Install My Packege '))
+    def install_my_packages(self, package_list, dep=None):
+        print_start = ' Start Install %s Packege ' % (dep or 'My')
+        print(p.color_print_format('okblue', print_start))
 
-        for p_info in update_programs_list:
+        for p_info in package_list:
             repo = p_info.get('repo')
             before = p_info.get('before')
+            dep = p_info.get('dep')
             package = p_info.get('name')
             after = p_info.get('after')
+            install = p_info.get('install')
+            # Добавление репозитория
             if repo:
                 self.add_repository(repo)
+            # Выполнение команд до установки программы
             if before:
-                cmd = before.get('cmd')
-                self.pipe_call(cmd, warning_code_list=[before.get('warning_code')])
-            self.install_package(package)
+                for step in before:
+                    cmd = step.get('cmd')
+                    self.pipe_call(cmd, warning_code_list=[step.get('warning_code')])
+            # Установка зависимых к программе пакетов
+            if dep:
+                self.install_my_packages(dep, dep='Dep')
+            # Установка программы иным способом
+            if install:
+                for step in install:
+                    cmd = step.get('cmd')
+                    warning_code = step.get('warning_code')
+                    self.install_package(package, cmd=cmd, warning_code_list=[warning_code])
+            else:
+                self.install_package(package)
             if after:
                 cmd = after.get('cmd')
                 self.pipe_call(cmd, warning_code_list=[after.get('warning_code')])
 
-        print(p.color_print_format('okblue', ' Finish Install My Packege '))
+        print_stop = ' Finish Install %s Packege ' % (dep or 'My')
+        print(p.color_print_format('okblue', print_stop))
         print('\n')
 
     def add_repository(self, name_repo):
@@ -113,30 +130,32 @@ class UUP(object):
         msg = '%s %s' % (prefix, name_repo)
         self.pipe_call(cmd, msg=msg, warning_code_list=[0])
 
-    def install_package(self, name_package):
+    def install_package(self, name_package, cmd=None, warning_code_list=None):
         """ Установка пакета """
-        if name_package:
-            prefix = 'Install Package'
+        prefix = 'Install Package'
+        msg = '%s %s' % (prefix, name_package)
+        if cmd:
+            self.pipe_call(cmd, msg=msg, warning_code_list=warning_code_list)
+        elif name_package:
             cmd = 'apt-get -y install %s' % name_package
-            msg = '%s %s' % (prefix, name_package)
             self.pipe_call(cmd, msg=msg)
         else:
-            print(p.print_error('Empty Name Packege'))
+            print(p.print_error('Empty Name or Install Package'))
             exit(1)
 
     @staticmethod
     def pipe_call(cmd, msg=None, stderr=PIPE, warning_code_list=None):
         print(p.print_info(msg))
         print(cmd)
-        pipe = Popen(cmd.split(), stderr=stderr, stdout=PIPE)
+        pipe = Popen(cmd.split(), stderr=stderr)
         out, err = pipe.communicate()
         print(pipe.returncode)
         if err:
             if warning_code_list and pipe.returncode in warning_code_list:
-                print(p.print_warning(err))
+                print(p.print_warning(err.decode('utf-8')))
             else:
                 print(p.print_error(msg))
-                print(err)
+                print(err.decode('utf-8'))
                 exit(1)
         print(p.print_ok_green(msg))
 
