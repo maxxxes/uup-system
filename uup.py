@@ -5,6 +5,7 @@ from subprocess import Popen, PIPE, STDOUT
 from print_colors import PrintColors
 from settings import *
 import argparse
+import sys
 
 p = PrintColors()
 
@@ -42,27 +43,34 @@ class UUP(object):
 
         programs = subparsers.add_parser('programs', help='Update programs', aliases=['prog'])
         programs.add_argument('programs', action='store_true')
+        programs.add_argument('-p', dest='program', help='Name programs for install')
+        programs.add_argument('-r', '--remove', action='store_true', help='Flag programs for remove')
 
+        if len(sys.argv) == 1:
+            uup_parse.print_usage()
         return uup_parse.parse_args()
 
     def start_update(self):
         if self.param.get('full'):
-            self.update_system()
-            self.install_system_libs()
-            self.install_my_packages(update_programs_list)
+            self.update_system(system_list)
+            self.install_package_list(packages_list)
+            self.install_programs_list(programs_list)
         elif self.param.get('system'):
-            self.update_system()
+            self.update_system(system_list)
         elif self.param.get('packages'):
-            self.install_system_libs()
+            self.install_package_list(packages_list)
         elif self.param.get('programs'):
-            self.install_my_packages(update_programs_list)
+            if self.param.get('remove'):
+                self.remove_programs_list(programs_list)
+            else:
+                self.install_programs_list(programs_list)
 
-    def update_system(self):
+    def update_system(self, cmd_list):
         """ Стандартное обновление системы """
         print(p.color_print_format('okblue', ' Start Update System '))
 
         prefix = 'CMD'
-        for item in update_system_list:
+        for item in cmd_list:
             try:
                 cmd = item['cmd']
                 msg = '%s %s' % (prefix, cmd)
@@ -74,54 +82,41 @@ class UUP(object):
         print(p.color_print_format('okblue', ' Finish Update System '))
         print('\n')
 
-    def install_system_libs(self):
+    def install_package_list(self, package_list):
         """ Установка дополнительных системных библиотек """
         print(p.color_print_format('okblue', ' Start Install System Libs '))
 
-        for item in update_package_list:
+        for item in package_list:
             name_package = item.get('name')
             self.install_package(name_package)
 
         print(p.color_print_format('okblue', ' Finish Install System Libs '))
         print('\n')
 
-    def install_my_packages(self, package_list, dep=None):
-        print_start = ' Start Install %s Packege ' % (dep or 'My')
+    def install_programs_list(self, program_list, dep=None):
+        print_start = ' Start Install %s Programs ' % (dep or 'My')
         print(p.color_print_format('okblue', print_start))
 
-        for p_info in package_list:
-            repo = p_info.get('repo')
-            before = p_info.get('before')
-            dep = p_info.get('dep')
-            package = p_info.get('name')
-            after = p_info.get('after')
-            install = p_info.get('install')
-            # Добавление репозитория
-            if repo:
-                self.add_repository(repo)
-            # Выполнение команд до установки программы
-            if before:
-                for step in before:
-                    cmd = step.get('cmd')
-                    self.pipe_call(cmd, warning_code_list=[step.get('warning_code')])
-            # Установка зависимых к программе пакетов
-            if dep:
-                self.install_my_packages(dep, dep='Dep')
-            # Установка программы иным способом
-            if install:
-                for step in install:
-                    cmd = step.get('cmd')
-                    warning_code = step.get('warning_code')
-                    self.install_package(package, cmd=cmd, warning_code_list=[warning_code])
-            else:
-                self.install_package(package)
-            if after:
-                cmd = after.get('cmd')
-                self.pipe_call(cmd, warning_code_list=[after.get('warning_code')])
+        name_program = self.param.get('program')
+        if name_program:
+            p_info = self.get_info_programs(name_program, program_list)
+            self.install_program(p_info)
+        else:
+            for p_info in program_list:
+                self.install_program(p_info)
 
-        print_stop = ' Finish Install %s Packege ' % (dep or 'My')
+        print_stop = ' Finish Install %s Programs ' % (dep or 'My')
         print(p.color_print_format('okblue', print_stop))
         print('\n')
+
+    @staticmethod
+    def get_info_programs(name_program, program_list):
+        """" Поиск информации о программе из списка """
+        for p_info in program_list:
+            if name_program in p_info.values():
+                return p_info
+        print(p.print_error('%s is not defined' % name_program))
+        exit(1)
 
     def add_repository(self, name_repo):
         """ Добавление репозитория для установки пакета """
@@ -129,6 +124,37 @@ class UUP(object):
         cmd = 'add-apt-repository -y %s' % name_repo
         msg = '%s %s' % (prefix, name_repo)
         self.pipe_call(cmd, msg=msg, warning_code_list=[0])
+
+    def install_program(self, p_info):
+        """ Подготовка и установка программы """
+        repo = p_info.get('repo')
+        before = p_info.get('before')
+        dep = p_info.get('dep')
+        package = p_info.get('name')
+        after = p_info.get('after')
+        install = p_info.get('install')
+        # Добавление репозитория
+        if repo:
+            self.add_repository(repo)
+        # Выполнение команд до установки программы
+        if before:
+            for step in before:
+                cmd = step.get('cmd')
+                self.pipe_call(cmd, warning_code_list=[step.get('warning_code')])
+        # Установка зависимых к программе пакетов
+        if dep:
+            self.install_programs_list(dep, dep='Dep')
+        # Установка программы иным способом
+        if install:
+            for step in install:
+                cmd = step.get('cmd')
+                warning_code = step.get('warning_code')
+                self.install_package(package, cmd=cmd, warning_code_list=[warning_code])
+        else:
+            self.install_package(package)
+        if after:
+            cmd = after.get('cmd')
+            self.pipe_call(cmd, warning_code_list=[after.get('warning_code')])
 
     def install_package(self, name_package, cmd=None, warning_code_list=None):
         """ Установка пакета """
@@ -140,7 +166,45 @@ class UUP(object):
             cmd = 'apt-get -y install %s' % name_package
             self.pipe_call(cmd, msg=msg)
         else:
-            print(p.print_error('Empty Name or Install Package'))
+            print(p.print_error('Empty Name or Install in settings package'))
+            exit(1)
+
+    def remove_programs_list(self, program_list):
+        print_start = ' Start Remove Programs '
+        print(p.color_print_format('okblue', print_start))
+
+        name_program = self.param.get('program')
+        p_info = self.get_info_programs(name_program, program_list)
+        if name_program:
+            self.remove_program(p_info)
+
+        print_stop = ' Finish Remove Programs '
+        print(p.color_print_format('okblue', print_stop))
+
+    def remove_program(self, p_info):
+        """ Подготовка и удаление программы """
+        program = p_info.get('name')
+        remove = p_info.get('remove')
+
+        # Если прописана отдельные команды для удаления
+        if remove:
+            for step in remove:
+                cmd = step.get('cmd')
+                self.remove_package(program, cmd=cmd)
+        else:
+            self.remove_package(program)
+
+    def remove_package(self, name_package, cmd=None):
+        """ Удаление пакета """
+        prefix = 'Remove Package'
+        msg = '%s %s' % (prefix, name_package)
+        if cmd:
+            self.pipe_call(cmd, msg=msg)
+        elif name_package:
+            cmd = 'apt-get -y remove %s' % name_package
+            self.pipe_call(cmd, msg=msg)
+        else:
+            print(p.print_error('Empty Name or Remove in settings package'))
             exit(1)
 
     @staticmethod
@@ -159,19 +223,6 @@ class UUP(object):
                 exit(1)
         print(p.print_ok_green(msg))
 
-
-# def remove_packages(name_packages_list):
-#     print('----- Start Remove Packages -----\n')
-#     for package in name_packages_list:
-#         cmd = 'apt-get -y remove %s' % package
-#         p = Popen(cmd.split(), stderr=PIPE)
-#         out, err = p.communicate()
-#         if err:
-#             print('----- Remove Package %s ERROR -----\n' % package)
-#             print(err)
-#             exit(1)
-#         print('----- Remove Package %s - DONE -----\n' % package)
-#     print('----- Finish Remove Packages -----\n')
 
 if __name__ == '__main__':
     uup = UUP()
