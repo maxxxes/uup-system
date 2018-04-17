@@ -44,7 +44,8 @@ class UUP(object):
         programs = subparsers.add_parser('programs', help='Update programs', aliases=['prog'])
         programs.add_argument('programs', action='store_true')
         programs.add_argument('-p', dest='program', help='Name programs for install')
-        programs.add_argument('-r', '--remove', action='store_true', help='Flag programs for remove')
+        programs.add_argument('-r', '--remove', action='store_true', help='Flag for remove program')
+        programs.add_argument('-u', '--upgrade', action='store_true', help='Flag for upgrade program')
 
         if len(sys.argv) == 1:
             uup_parse.print_usage()
@@ -160,10 +161,14 @@ class UUP(object):
         """ Установка пакета """
         prefix = 'Install Package'
         msg = '%s %s' % (prefix, name_package)
+        upgrade = ''
+        if self.param.get('upgrade'):
+            upgrade = '--only-upgrade'
+
         if cmd:
             self.pipe_call(cmd, msg=msg, warning_code_list=warning_code_list)
         elif name_package:
-            cmd = 'apt-get -y install %s' % name_package
+            cmd = 'apt-get -y install %s %s' % (upgrade, name_package)
             self.pipe_call(cmd, msg=msg)
         else:
             print(p.print_error('Empty Name or Install in settings package'))
@@ -201,7 +206,7 @@ class UUP(object):
         if cmd:
             self.pipe_call(cmd, msg=msg)
         elif name_package:
-            cmd = 'apt-get -y remove %s' % name_package
+            cmd = 'apt-get remove %s' % name_package
             self.pipe_call(cmd, msg=msg)
         else:
             print(p.print_error('Empty Name or Remove in settings package'))
