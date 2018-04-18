@@ -165,19 +165,3 @@ sudo python uup.py prog -p prog_name -r
 ```
 > *prog_name* - short_name or name in programs list
 
-
-## UML diagrams Menu
-
-```mermaid
-graph TD
-A[uup.py] --> S[system]
-A --> Pa[packages]
-A --> Pr[programs]
-S --> update
-S --> U[upgrade]
-Pa --> I[install]
-Pr --> install
-Pr --> upgrade
-Pr --> remove
-
-```
