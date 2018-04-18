@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # import subprocess as sub
 from subprocess import Popen, PIPE
-from uups.print_colors import PrintColors
+from uup_system.print_colors import PrintColors
 from settings import *
 import argparse
 import sys
@@ -153,8 +153,9 @@ class UUP(object):
         else:
             self.install_package(package)
         if after:
-            cmd = after.get('cmd')
-            self.pipe_call(cmd, warning_code_list=[after.get('warning_code')])
+            for step in after:
+                cmd = step.get('cmd')
+                self.pipe_call(cmd, warning_code_list=[after.get('warning_code')])
 
     def install_package(self, name_package, cmd=None, warning_code_list=None):
         """ Установка пакета """

@@ -28,9 +28,10 @@ programs_list = (
 
     {'name': 'telegram',
      'repo': 'ppa:atareao/telegram',
-     'after': {'cmd': 'ln -s /usr/share/applications/guake.desktop /etc/xdg/autostart/',
-               'warning_code': 1}
-     },
+     'after': [
+         {'cmd': 'ln -s /usr/share/applications/guake.desktop /etc/xdg/autostart/',
+          'warning_code': 1}
+     ]},
 
     {'short_name': 'chrome',
      'name': 'google-chrome-stable',
