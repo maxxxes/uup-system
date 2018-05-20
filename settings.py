@@ -17,7 +17,11 @@ packages_list = (
 
 programs_list = (
     {'name': 'guake'},
+    {'name': 'nginx'},
+    {'name': 'supervisor'},
     {'name': 'mc'},
+    {'name': 'curl'},
+    {'name': 'ccze'},
     {'name': 'git'},
     # {'name': 'mysql-server'},   # Запрашивает пароль рута, нужно потестить
     # {'name': 'mysql-client'},
